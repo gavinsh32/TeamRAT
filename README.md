@@ -1,7 +1,12 @@
 # Project RAT
-A pipeline to extract fascicle structure from cross-sections of rat tails. Working repository for Project 31: Team R.A.T.
+Working repository for 2025 Capstone Senior Design Project: R.A.T. (Reconstruction & Analysis of Tendons)
 
-# Current Progress
-### Testing SAM
-We are currently using Colab to test SAM for the first stage of our inference pipeline. 
-[Link to Notebook](https://colab.research.google.com/gist/gavinsh32/8b7d60d639f375ab9ac7d628fd8c7dd3/learnsam.ipynb)
+## Overview
+This repository contains various tools for deploying a fine-tuned SAM model, including dataset validation, augmentation, and training.
+
+## Background
+Researchers are interested in how rats move their tails. Tendons,
+which connect muscle to bone, are comprised of numerous, tiny
+fibers called fascicles. These are too difficult for existing
+methods to detect automatically and are usually done by hand,
+requiring substantial manual labor and hindering progress.​
