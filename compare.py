@@ -3,15 +3,10 @@
 # View input images along with annotations.
 # THIS CODE IS NOT MINE: https://stackoverflow.com/a/74901690
 
-import os
-import cv2 as cv
-import numpy
-import json
-from itertools import groupby
-from pycocotools import mask as mask_utils
 from typing import List
 import numpy as np
-
+import cv2 as cv
+import json
 
 class InputStream:
     def __init__(self, data):
@@ -76,11 +71,11 @@ with open('./data.json') as data_file:
     data = json.load(data_file)
 
     for task in data:
+        print('Viewing labels for task', task['id'])
         for annotation in task['annotations'][0]['result']:
             rle = annotation['value']['rle']
             width = annotation['original_width']
             height = annotation['original_height']
-            print(rle, width, height)
             mask = rle_to_mask(rle, height, width)
             cv.imshow('Result', mask)
             cv.waitKey(0)
