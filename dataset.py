@@ -31,7 +31,9 @@ class Dataset:
         # Read in essential data from labels
         labels_file = dataset_folder / 'labels.json'
         with open(labels_file) as data_file:
-            self.data = json.load(data_file)
+            data = json.load(data_file)
+            self.data = {}
+
 
     def check(self, imgs_path: Path):
         pass
