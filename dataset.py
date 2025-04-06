@@ -41,15 +41,15 @@ class Dataset:
             # Only read in annotations if there is a matching image
             if os.path.exists(img_path):
                 
-                self.data[img_path] = {}    # Create new entry
-                results = task['annotations'][0]['result']  # All annotation info
+                # Get all annotation information for an image
+                results = task['annotations'][0]['result']
 
-                # Copy width and height from first annotation
-                self.data[img_path]['width'] = results[0]['original_width']
-                self.data[img_path]['height'] = results[0]['original_height']
-
-                # All rle masks for the img
-                self.data[img_path]['rle'] = [result['value']['rle'] for result in results]
+                # Create a new entry with essential information   
+                self.data[img_path] = {
+                    'width': results[0]['original_width'],
+                    'height': results[0]['original_height'],
+                    'rle': [result['value']['rle'] for result in results]
+                }
 
     # Get all data
     def get(self):
@@ -60,7 +60,7 @@ class Dataset:
         """
         return self.data
     
-    def __str__(self):
+    def display(self):
         output = ''
         for imgPath in self.data:
             output += 'Image: ' + str(imgPath) + '\n'
@@ -69,19 +69,3 @@ class Dataset:
             output += 'Number of masks: ' + repr(len(self.data[imgPath]['rle'])) + '\n'
 
         return output
-
-# Test Code
-dataset = Dataset('./dataset')
-data = dataset.get()
-
-for key in data:
-    img_path = repr(key)
-    print('Reading labels for', img_path)
-    width = data[key]['width']
-    height = data[key]['height']
-    for rle in data[key]['rle']:
-        mask = lc.rle_to_mask(rle, width, height)
-        cv.imshow('Result', mask)
-        cv.waitKey(0)
-
-cv.destroyAllWindows()
