@@ -6,6 +6,7 @@ import json                     # Reading annotations in
 import numpy as np              # Mask and image data
 import os                       # System operations
 from pathlib import Path        # Path manipulation
+import pycocotools.mask as mask # Mask re-encoding
 import cv2 as cv
 import labelconverter as lc     # See labelconvert.py, I did not write this
 import albumentations as A
@@ -46,26 +47,45 @@ class Dataset:
                 results = task['annotations'][0]['result']
 
                 # Create a new entry with essential information   
-                self.data[img_path] = {
-                    'width': results[0]['original_width'],
-                    'height': results[0]['original_height'],
-                    'rle': [result['value']['rle'] for result in results]
-                }
+                self.insert(
+                    img_path,
+                    results[0]['original_width'],
+                    results[0]['original_height'],
+                    [result['value']['rle'] for result in results]
+                )
+
+    # Augment the dataset, scaling by constant factor scale
+    def augment(self, scale=5):
+
+        transform = A.Compose([
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+        ])
+
+        for img_path in self.get():
+            input_masks = self.get_masks(img_path)
+            input_img = cv.imread(img_path, cv.COLOR_RGB2BGR)
+
+            for _ in range(scale):
+                result = transform(image=input_img, masks=input_masks)
+                output_img = result['image']
+                output_masks = result['masks']
+                ex = mask.encode(np.asfortranarray(output_masks[0]))
+                print(ex)
+
+    # Insert an image with annotations to internal dataset
+    def insert(self, key: str, width: int, height: int, rle: list[list[int]]):
+        self.data[key] = {'width': width, 'height': height, 'rle': rle}
 
     def entries(self):
         return self.data.keys()
 
     # Get all data
     def get(self):
-        """
-        Get the dict containing dataset information.
-
-        Returns: dict
-        """
         return self.data
 
     # Get all the numpy masks for an image
-    def getMasks(self, img_path: str):
+    def get_masks(self, img_path: str):
         entry = self.get()[img_path]
         width, height, rles = entry['width'], entry['height'], entry['rle']
         return [lc.rle_to_mask(rle, width, height) for rle in rles]
@@ -82,16 +102,4 @@ class Dataset:
 
 dataset = Dataset('./dataset')
 
-transform = A.Compose([
-    A.HorizontalFlip(p=0.5),
-    A.RandomBrightnessContrast(p=0.2),
-])
-
-output_imgs = []
-output_masks = []
-
-# Augment images
-for img_path in dataset.get():
-    input_masks = dataset.getMasks(img_path)
-    input_img = cv.imread(img_path)
-    
+dataset.augment(3)
