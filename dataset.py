@@ -4,10 +4,11 @@
 
 import json                     # Reading annotations in
 import numpy as np              # Mask and image data
-import cv2 as cv                # Display results
 import os                       # System operations
 from pathlib import Path        # Path manipulation
+import cv2 as cv
 import labelconverter as lc     # See labelconvert.py, I did not write this
+import albumentations as A
 
 class Dataset:
 
@@ -31,9 +32,9 @@ class Dataset:
         with open(labels_file) as data_file:
             data = json.load(data_file)
 
-        # Iterate through each task (set of annotations, 1 per input image)
-        for task in data:
-            
+        # Loop through each task, one set of annotations per image
+        for task in data:   
+
             # Grab name of the source image that was annotated, and trim
             img_name = task['file_upload'].split('-')[1]
             img_path = str(imgs_folder / img_name)
@@ -41,7 +42,7 @@ class Dataset:
             # Only read in annotations if there is a matching image
             if os.path.exists(img_path):
                 
-                # Get all annotation information for an image
+                # List of masks corresponding to an image
                 results = task['annotations'][0]['result']
 
                 # Create a new entry with essential information   
@@ -51,6 +52,9 @@ class Dataset:
                     'rle': [result['value']['rle'] for result in results]
                 }
 
+    def entries(self):
+        return self.data.keys()
+
     # Get all data
     def get(self):
         """
@@ -59,6 +63,12 @@ class Dataset:
         Returns: dict
         """
         return self.data
+
+    # Get all the numpy masks for an image
+    def getMasks(self, img_path: str):
+        entry = self.get()[img_path]
+        width, height, rles = entry['width'], entry['height'], entry['rle']
+        return [lc.rle_to_mask(rle, width, height) for rle in rles]
     
     def display(self):
         output = ''
@@ -68,4 +78,20 @@ class Dataset:
             output += 'Original height: ' + repr(self.data[imgPath]['height']) + '\n'
             output += 'Number of masks: ' + repr(len(self.data[imgPath]['rle'])) + '\n'
 
-        return output
+        print(output)
+
+dataset = Dataset('./dataset')
+
+transform = A.Compose([
+    A.HorizontalFlip(p=0.5),
+    A.RandomBrightnessContrast(p=0.2),
+])
+
+output_imgs = []
+output_masks = []
+
+# Augment images
+for img_path in dataset.get():
+    input_masks = dataset.getMasks(img_path)
+    input_img = cv.imread(img_path)
+    
