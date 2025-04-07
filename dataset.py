@@ -62,8 +62,6 @@ class Dataset:
                     [result['value']['rle'] for result in results]
                 )
 
-        print(self.indexes)
-
     # Augment the dataset, scaling by constant factor scale
     def augment(self, scale=5):
         """
@@ -115,12 +113,23 @@ class Dataset:
             print('Error: dataset does not contain image', image_path)
             return {}
         
-    def get_mask(self, index: str, mask_num: int) -> int:
+    def get_mask_rle(self, index: str, mask_num: int) -> int:
         if mask_num < self.num_masks(index):
             return self.get_entry(index)['rle'][mask_num]
         else:
             print('Error: mask index', mask_num, 'out of range.')
             return -1
+    
+    # Get all the numpy masks for an image
+    def get_masks(self, img_path: str) -> list[np.array]:
+        return [self.get_mask(img_path, i) for i in self.num_masks('img_path')]
+    
+    def get_mask(self, img_path: str, mask_num: int) -> np.array:
+        entry = self.get_entry(img_path)
+        width = entry['width']
+        height = entry['height']
+        rle = self.get_mask_rle(img_path, mask_num)
+        return lc.rle_to_mask(rle, height, width)
 
     def indexes(self) -> list[str]:
         return [img_name for img_name in self.data]
@@ -134,12 +143,12 @@ class Dataset:
     def display(self, option: int) -> None:
         pass
     
-    # Get all the numpy masks for an image
-    def get_masks(self, img_path: str) -> list[np.array]:
-        entry = self.get()[img_path]
-        width, height, rles = entry['width'], entry['height'], entry['rle']
-        return [lc.rle_to_mask(rle, width, height) for rle in rles]
-    
+    def display_all(self, image_path: str):
+        pass
+
+    def display(self, image_path: str):
+        pass
+
     def display_entry(self, img_path: str) -> None:
         print('Image:', img_path)
         print('Width:', self.get_entry(img_path)['width'])
@@ -159,5 +168,22 @@ class Dataset:
 
 dataset = Dataset('./dataset')
 
-print(dataset.indexes())
-dataset.display_entry('/home/gav/GitHub/TeamRAT/dataset/imgs/2.jpg')
+mask_orig = dataset.get_mask('/home/gav/GitHub/TeamRAT/dataset/imgs/2.jpg', 0)
+
+# cv.imshow('Original Mask', mask_orig)
+# cv.waitKey(0)
+
+mask_encoded = mask.encode(np.asfortranarray(mask_orig))
+#print(mask_encoded)
+
+mask_decoded = mask.decode(mask_encoded)
+
+mask_decoded = mask_decoded.reshape(mask_decoded.shape[0], mask_decoded.shape[1], 1)
+
+print(mask_decoded.dtype)
+print(mask_decoded.shape)
+print(np.unique(mask_decoded))
+
+cv.imshow('Mask', mask_decoded * 255)
+cv.waitKey(0)
+cv.destroyAllWindows()
