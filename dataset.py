@@ -10,8 +10,16 @@ import pycocotools.mask as mask # Mask re-encoding
 import cv2 as cv
 import labelconverter as lc     # See labelconvert.py, I did not write this
 import albumentations as A
+from enum import Enum           
+
+# Internal Dataset Format: dict[image_name: dict[width,height,rle]]
+# Stores only essential data regarding the dataset required for manipulating
+# RLE masks.
 
 class Dataset:
+    """
+    Helps with Label Studio Segmentation Masks. Convert, augment, and then export to COCO format.
+    """
 
     # Read in dataset and load valid images and annotations
     def __init__(self, dataset_folder_path: str):
@@ -54,43 +62,92 @@ class Dataset:
                     [result['value']['rle'] for result in results]
                 )
 
+        print(self.indexes)
+
     # Augment the dataset, scaling by constant factor scale
     def augment(self, scale=5):
+        """
+        Augment images loaded in to the datset, scaling the volume by a constant factor. Augmented images are appended to current dataset and saved in the output folder.
+        Args:
+            scale:
+            Scale the total number of images by this amount
+        Returns: None
+        """
 
+        # Transformation Pipeline
         transform = A.Compose([
             A.HorizontalFlip(p=0.5),
             A.RandomBrightnessContrast(p=0.2),
         ])
 
         for img_path in self.get():
+
             input_masks = self.get_masks(img_path)
             input_img = cv.imread(img_path, cv.COLOR_RGB2BGR)
 
             for _ in range(scale):
+
                 result = transform(image=input_img, masks=input_masks)
+                
                 output_img = result['image']
                 output_masks = result['masks']
+                
                 ex = mask.encode(np.asfortranarray(output_masks[0]))
+                
                 print(ex)
 
     # Insert an image with annotations to internal dataset
     def insert(self, key: str, width: int, height: int, rle: list[list[int]]):
         self.data[key] = {'width': width, 'height': height, 'rle': rle}
 
-    def entries(self):
-        return self.data.keys()
-
     # Get all data
-    def get(self):
+    def get(self) -> dict:
         return self.data
 
+    def get_masks_rle(self, image_path: str) -> list[list]:
+        return self.get_entry(image_path)['rle']
+
+    # Get the dict of information corresponding to img_path
+    def get_entry(self, image_path: str) -> dict:
+        if image_path in self.get():
+            return self.get()[image_path]
+        else:
+            print('Error: dataset does not contain image', image_path)
+            return {}
+        
+    def get_mask(self, index: str, mask_num: int) -> int:
+        if mask_num < self.num_masks(index):
+            return self.get_entry(index)['rle'][mask_num]
+        else:
+            print('Error: mask index', mask_num, 'out of range.')
+            return -1
+
+    def indexes(self) -> list[str]:
+        return [img_name for img_name in self.data]
+
+    def size(self) -> int:
+        return len(self.data)
+    
+    def num_masks(self, index: str) -> int:
+        return len(self.get_entry(index)['rle'])
+
+    def display(self, option: int) -> None:
+        pass
+    
     # Get all the numpy masks for an image
-    def get_masks(self, img_path: str):
+    def get_masks(self, img_path: str) -> list[np.array]:
         entry = self.get()[img_path]
         width, height, rles = entry['width'], entry['height'], entry['rle']
         return [lc.rle_to_mask(rle, width, height) for rle in rles]
     
-    def display(self):
+    def display_entry(self, img_path: str) -> None:
+        print('Image:', img_path)
+        print('Width:', self.get_entry(img_path)['width'])
+        print('Height', self.get_entry(img_path)['height'])
+        print('Number of Masks:', self.num_masks(img_path))
+
+    # Display information about the dataset.
+    def display_all(self):
         output = ''
         for imgPath in self.data:
             output += 'Image: ' + str(imgPath) + '\n'
@@ -102,4 +159,5 @@ class Dataset:
 
 dataset = Dataset('./dataset')
 
-dataset.augment(3)
+print(dataset.indexes())
+dataset.display_entry('/home/gav/GitHub/TeamRAT/dataset/imgs/2.jpg')
