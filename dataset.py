@@ -6,11 +6,9 @@ import json                     # Reading annotations in
 import numpy as np              # Mask and image data
 import os                       # System operations
 from pathlib import Path        # Path manipulation
-import pycocotools.mask as mask # Mask re-encoding
 import cv2 as cv
+import pycocotools.mask as mask # Mask re-encoding
 import labelconverter as lc     # See labelconvert.py, I did not write this
-import albumentations as A
-from enum import Enum           
 
 # Internal Dataset Format: dict[image_name: dict[width,height,rle]]
 # Stores only essential data regarding the dataset required for manipulating
@@ -73,43 +71,39 @@ class Dataset:
         self.data[key] = {'width': width, 'height': height, 'rles': rle}
 
     # Get all data
-    def get(self) -> dict:
+    def get_all(self) -> dict:
         return self.data
-
-    # Get the dict of information corresponding to img_path
-    def get_entry(self, image_path: str) -> dict:
-        if image_path in self.get():
-            return self.get()[image_path]
-        else:
-            print('Error: dataset does not contain image', image_path)
-            return {}
         
     # Get all RLE masks for a given image
     def get_rles(self, img_path: str) -> list[list]:
-        return [rle for rle in self.get_entry(img_path)['rles']]
+        return [rle for rle in self.get_all()[img_path]['rles']]
     
     # Get all numpy masks for a given image
-    def get_masks_np(self, img_path: str) -> list[np.array]:
+    def get_masks(self, img_path: str) -> list[np.array]:
         rles = self.get_rles(img_path)
         return [mask.decode(rle) for rle in rles]
 
     # Get available images in the dataset
     def indexes(self) -> list[str]:
         return [img_name for img_name in self.data]
-
-    # Return the number of images in the dataset
-    def size(self) -> int:
-        return len(self.data)
     
-    # Return the number of masks for a given image
-    def num_masks(self, index: str) -> int:
-        return len(self.get_entry(index)['rles'])
+    def show(self, img_path: str, option=0):
+        """
+        Show the image and its masks.
+        Args:
+            img_path: path to the image
+            option
+        """
+        masks = self.get_masks(img_path)
+        img = cv.imread(img_path)
 
-    def display_entry(self, img_path: str) -> None:
-        print('Image:', img_path)
-        print('Width:', self.get_entry(img_path)['width'])
-        print('Height', self.get_entry(img_path)['height'])
-        print('Number of Masks:', self.num_masks(img_path))
+        for contours in self.get_contours(img_path):
+            cv.drawContours(img, contours, -1, (0, 0, 255), 2)
+
+        name = img_path.split('/')[-1] + ', # of Labels: ' + str(len(masks))
+        cv.imshow(name, img)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
 
     # Display information about the dataset.
     def display_all(self):
@@ -122,12 +116,33 @@ class Dataset:
 
         print(output)
 
+    def get_bounding_rects(self, img_path: str):
+        bboxes = []
+        for contour in self.get_contours(img_path):
+                x, y, w, h = cv.boundingRect(contour)
+                bboxes.append((x, y, w, h))
+        return bboxes
+
+    def get_contours(self, img_path: str):
+        all_contours = []
+        for mask in self.get_masks(img_path):
+            mask *= 255
+            contours, heirarchy = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+            all_contours.append(contours)
+        return all_contours
+
 dataset = Dataset('./dataset')
 
-masks = dataset.get_masks_np('/home/gav/GitHub/TeamRAT/dataset/imgs/3.jpg')
+img_path = dataset.indexes()[0]
 
-for i in masks:
-    cv.imshow('mask', i * 255)
-    cv.waitKey(0)
+img = cv.imread(img_path)
 
+bboxes = dataset.get_bounding_rects(img_path)
+
+for box in bboxes:
+    x, y, w, h = box
+    cv.rectangle(img, (x,y), (x+w,y+h), (0,0,255), 2)
+
+cv.imshow('img', img)
+cv.waitKey(0)
 cv.destroyAllWindows()
