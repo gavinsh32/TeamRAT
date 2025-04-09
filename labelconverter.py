@@ -2,7 +2,8 @@
 
 # Author: Label Studio
 # Source: https://github.com/HumanSignal/label-studio-converter/blob/master/label_studio_converter/brush.py#L70
-# DISCLAIMER: All code is sourced from label studio
+# Source: https://stackoverflow.com/a/74901690
+# DISCLAIMER: All code is sourced from label studio and user Akhil Ultimate.
 
 from typing import List
 import numpy as np
