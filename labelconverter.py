@@ -1,8 +1,8 @@
 # labelconverter.py
 
-# Author: user Akhil Ultimate
-# Source: StackOverflow 
-# Link: https://stackoverflow.com/a/74901690
+# Author: Label Studio
+# Source: https://github.com/HumanSignal/label-studio-converter/blob/master/label_studio_converter/brush.py#L70
+# DISCLAIMER: All code is sourced from label studio
 
 from typing import List
 import numpy as np
