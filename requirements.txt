@@ -1,0 +1,4 @@
+opencv-python==4.11.0.86
+numpy==1.26.4
+pycocotools==2.0.8
+albumentations==2.0.5
