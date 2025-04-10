@@ -21,7 +21,7 @@ def main():
     
     coco_dataset = []
 
-    with open(dataset_folder_path / 'data.json') as data_file:
+    with open(dataset_folder_path / 'ls-labels.json') as data_file:
         
         data = json.load(data_file)
         
@@ -71,9 +71,9 @@ def make_entry(img_path: str, results: list):
     for id, annotation in enumerate(results):
 
         coco_rle = convert_rle(annotation)
-        json_rle = coco_rle
+        json_rle = coco_rle.copy()
         json_rle['counts'] = json_rle['counts'].decode('utf-8')
-        
+
         annotations.append({
             'id': id,
             'segmentation': json_rle,
@@ -84,7 +84,7 @@ def make_entry(img_path: str, results: list):
             'crop_box': pycmask.toBbox(coco_rle).tolist(),
             'point_coords': []
         })
-    
+
     return {'image': image_info, 'annotations': annotations}
 
 
