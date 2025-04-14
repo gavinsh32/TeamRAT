@@ -1,11 +1,6 @@
 # dataset.py
 # Gavin Haynes
-
-# I need things like 
-# Read from label studio file
-# Convert to coco
-# Make coco entries when augmenting
-# Fetching info to view
+# Working with COCO dataset
 
 import os
 import sys
@@ -16,105 +11,97 @@ from labelconverter import rle_to_mask
 from pathlib import Path
 from pycocotools import mask as pycmask
 
-def ls_to_coco_entry(img_path: str, results: list):
-    """
-    Conver a LS entry to COCO format.
-    Args:
-        img_path (str): Path to the image.
-        results (list): List of segmentation results in LS format.
-    Returns:
-        dict: COCO dataset entry.
-    """
+"""
+Dataset Format:
+{
+    "image"                 : image_info,
+    "annotations"           : [annotation],
+}
+
+image_info {
+    "image_id"              : int,              # Image id
+    "width"                 : int,              # Image width
+    "height"                : int,              # Image height
+    "file_name"             : str,              # Image filename
+}
+
+annotation {
+    "id"                    : int,              # Annotation id
+    "segmentation"          : dict,             # Mask saved in COCO RLE format.
+    "bbox"                  : [x, y, w, h],     # The box around the mask, in XYWH format
+    "area"                  : int,              # The area in pixels of the mask
+    "predicted_iou"         : float,            # The model's own prediction of the mask's quality
+    "stability_score"       : float,            # A measure of the mask's quality
+    "crop_box"              : [x, y, w, h],     # The crop of the image used to generate the mask, in XYWH format
+    "point_coords"          : [[x, y]],         # The point coordinates input to the model to generate the mask
+}
+"""
+
+class Dataset:
+    def __init__(self, imgs_folder: Path, data_path: Path):
+        """
+        Initialize the Dataset class.
+        Args:
+            imgs_folder (str): Path to the folder containing images.
+            data_path (str): Path to the JSON file containing annotations.
+        """
+
+        # Check for images folder.
+        self.imgs_folder = imgs_folder.resolve()
+        assert os.path.exists(self.imgs_folder), \
+            f"Images folder does not exist: {self.imgs_folder}"
+        
+        # Check for the labels file.
+        self.labels = data_path.resolve()
+        assert os.path.exists(self.labels), \
+            f"Data path does not exist: {self.labels}"
+        
+        # Load in labels json and check that there is data.
+        with open(self.labels) as data_file:
+            self.data = json.load(data_file)
+            assert len(self.data) > 0, 'ERROR: No data found in ' + str(self.data_path)
+
+    def get_all(self):
+        return self.data
     
-    height = results[0]['original_height']
-    width = results[0]['original_width']
+    def get_img_data(self, entry: dict):
+        """
+        Get data required to view from an entry in the dataset.
+        Args:
+            entry (dict): Entry in the dataset.
+        Returns:
+            tuple: Image path, image width, image height, and segmentation masks.
+        """
+
+        masks = []
+
+        for ann in entry['annotations']:
+            seg = ann['segmentation']
+            seg['counts'] = bytes(seg['counts'], 'utf-8')
+            masks.append(pycmask.decode(seg))
+
+        return (
+            entry['image']['file_name'],
+            entry['image']['height'],
+            entry['image']['width'],
+            masks
+        )
+
+    def __len__(self):
+        return len(self.data)
+
+    def draw_contours(self, img, masks: list):
+        """
+        Display the image with the given masks.
+        Args:
+            image_path (str): Path to the image.
+            masks (list): List of masks to display.
+        """
     
-    image_info = {
-        'image_id': img_path,
-        'width': width,
-        'height': height,
-        'file_name': img_path
-    }
+        for mask in masks:
+            mask *= 255
+            contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+            for contour in contours:
+                cv.drawContours(img, contour, -1, (0, 0, 255), 2)
 
-    # Create annotation entries for each mask in the results
-
-    annotations = []
-    
-    for id, annotation in enumerate(results):
-
-        coco_rle = convert_rle(annotation)
-        json_rle = coco_rle.copy()
-        json_rle['counts'] = json_rle['counts'].decode('utf-8')
-
-        annotations.append({
-            'id': id,
-            'segmentation': json_rle,
-            'bbox': pycmask.toBbox(coco_rle).tolist(),
-            'area': int(pycmask.area(coco_rle)),
-            'predicted_iou': 0.0,
-            'stability_score': 0.0,
-            'crop_box': pycmask.toBbox(coco_rle).tolist(),
-            'point_coords': []
-        })
-
-    return {'image': image_info, 'annotations': annotations}
-
-def convert_rle(label: list) -> dict:
-    """
-    Convert an RLE mask to COCO format.
-    Args:
-        label (list): Label-Studio RLE string).
-    Returns:
-        dict: COCO format RLE mask. 
-    """
-    
-    mask = rle_to_mask(
-        label['value']['rle'],
-        label['original_height'],
-        label['original_width']
-    )
-
-    mask[mask > 0] = 1
-    mask = np.asfortranarray(mask, dtype=np.uint8)
-       
-    return pycmask.encode(mask)
-
-def get_img_data(entry: dict):
-    """
-    Get data required to view an entry in the dataset.
-    Args:
-        entry (dict): Entry in the dataset.
-    Returns:
-        tuple: Image path, image width, image height, and segmentation masks.
-    """
-
-    masks = []
-
-    for ann in entry['annotations']:
-        seg = ann['segmentation']
-        seg['counts'] = bytes(seg['counts'], 'utf-8')
-        masks.append(pycmask.decode(seg))
-
-    return (
-        entry['image']['file_name'],
-        entry['image']['height'],
-        entry['image']['width'],
-        masks
-    )
-
-def draw_contours(image_path: str, masks: list):
-    """
-    Display the image with the given masks.
-    Args:
-        image_path (str): Path to the image.
-        masks (list): List of masks to display.
-    """
-    img = cv.imread(image_path)
-    
-    for mask in masks:
-        mask *= 255
-        contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-        for contour in contours:
-            cv.drawContours(img, contour, -1, (0, 0, 255), 2)
-
-    return img
+        return img
