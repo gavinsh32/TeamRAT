@@ -29,8 +29,6 @@ def main():
         cv.imshow(image_path, draw_contours(image_path, masks))
         cv.waitKey(0)
 
-        cv.destroyAllWindows()
-
 def get(entry: dict):
     """
     Get data required to view an entry in the dataset.
