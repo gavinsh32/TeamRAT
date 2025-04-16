@@ -21,7 +21,7 @@ def main():
     
     coco_dataset = []
 
-    with open(dataset_folder_path / 'data.json') as data_file:
+    with open(dataset_folder_path / 'labels.json') as data_file:
         
         data = json.load(data_file)
         
