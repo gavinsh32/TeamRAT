@@ -21,11 +21,7 @@ def main():
     
     coco_dataset = []
 
-<<<<<<< HEAD
     with open(dataset_folder_path / 'labels.json') as data_file:
-=======
-    with open(dataset_folder_path / 'ls-labels.json') as data_file:
->>>>>>> 3a89a6ab46895608c688a83ea8bc6a42fda4a26a
         
         data = json.load(data_file)
         
