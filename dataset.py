@@ -64,13 +64,13 @@ class Dataset:
     def get_all(self):
         return self.data
     
-    def get_img_data(self, entry: dict):
+    def get_img_data(self, entry: dict) -> tuple[str, int, int, list[np.ndarray]]:
         """
         Get data required to view from an entry in the dataset.
         Args:
             entry (dict): Entry in the dataset.
         Returns:
-            tuple: Image path, image width, image height, and segmentation masks.
+            tuple: Tuple containing the image path, height, width, and masks.
         """
 
         masks = []
@@ -78,7 +78,7 @@ class Dataset:
         for ann in entry['annotations']:
             seg = ann['segmentation']
             seg['counts'] = bytes(seg['counts'], 'utf-8')
-            masks.append(pycmask.decode(seg))
+            masks.append(seg)
 
         return (
             entry['image']['file_name'],
@@ -89,6 +89,9 @@ class Dataset:
 
     def __len__(self):
         return len(self.data)
+    
+    def __getitem__(self, idx: int):
+        return self.data[idx]
 
     def draw_contours(self, img, masks: list):
         """
@@ -101,6 +104,7 @@ class Dataset:
         for mask in masks:
             mask *= 255
             contours, _ = cv.findContours(mask, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+            
             for contour in contours:
                 cv.drawContours(img, contour, -1, (0, 0, 255), 2)
 

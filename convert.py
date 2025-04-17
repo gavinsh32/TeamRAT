@@ -15,13 +15,16 @@ from pycocotools import mask as pycmask
 def main():
     
     assert len(sys.argv) == 2, "Usage: python convert.py <path_to_dataset_folder>"
-    
-    dataset_folder_path = Path(sys.argv[1]).resolve()
-    imgs_folder_path = dataset_folder_path / 'imgs'
-    
-    coco_dataset = []
 
-    with open(dataset_folder_path / 'ls-labels.json') as data_file:
+    coco_dataset = []
+        
+    dataset_folder_path = Path(sys.argv[1]).resolve()
+
+    assert os.path.exists(dataset_folder_path), f"Path does not exist: {dataset_folder_path}"
+
+    imgs_folder_path = dataset_folder_path / 'imgs'
+
+    with open(dataset_folder_path / 'labels.json') as data_file:
         
         data = json.load(data_file)
         
@@ -37,7 +40,7 @@ def main():
 
                 # List of masks corresponding to an image
                 results = task['annotations'][0]['result']
-                coco_dataset.append(ls_to_coco_entry(img_path, results))
+                coco_dataset.append(ls_to_coco_entry(img_name, results))
     
     output_json_path = dataset_folder_path / 'converted.json'
 
