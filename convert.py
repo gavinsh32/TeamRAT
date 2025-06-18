@@ -19,28 +19,37 @@ def main():
     output_dir: Path = Path(sys.argv[3]).resolve()
 
     os.mkdir(output_dir)
-    
-    dataset: dict = {}
 
     with open(input_labels_path, 'r') as data_file:
         data = json.load(data_file)
         
+        # Iterate through all sets of annotations (one image has many masks).
         for task in data:   
             # Grab name of the source image that was annotated, and trim
             img_name = task['file_upload'].split('-')[1]
             
             # Import masks only if there's a matching image.
             if os.path.exists(imgs_folder_path / img_name):
-                print('Processing:', img_name)
                 masks = []
                 
+                # Iterate through all masks ('results') for an image.
                 for i, result in enumerate(task['annotations'][0]['result']):
                     height = result['original_height']
                     width = result['original_width']
+
+                    # Convert LS-style dict {'width': 100, 'height': 100, 'rle': '...'} to
+                    # COCO-style 1D ndarray.
                     mask: np.ndarray = decode_rle(result['value']['rle']).astype(np.uint8)
-                    mask[mask > 0] = 255
+
+                    # Convert mask to human-readable format. 
+                    # COCO expects masks to be in the format (b, g, r, a).
                     mask = np.reshape(mask, (height, width, 4))
+
+                    # Convert to cv2 friendly format and normalize.
                     mask = mask[:, :, 3]
+                    mask[mask > 0] = 255
+
+                    # Export mask to numpy format and name accordingly.
                     mask_name = img_name.split('.')[0] + f'-{i}.npy'
                     np.save(output_dir / mask_name, mask)
 
