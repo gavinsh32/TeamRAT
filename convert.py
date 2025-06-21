@@ -1,6 +1,6 @@
-# convert.py
-# Gavin Haynes
-# Convert Label-Studio RLE annotations to COCO format for use with training SAM.
+# convert.py | Gavin Haynes
+
+# Convert Label-Studio RLE annotations to numpy masks and save. Label Studio uses a custom RLE format for masks, which we need to convert to a format which is human-readable and easily modifiable. Masks are decoded and are subsequently saved as uint8 numpy arrays, the standard data format for OpenCV and image processing.
 
 import os
 import sys
@@ -17,9 +17,14 @@ def main():
     imgs_folder_path: Path = Path(sys.argv[1]).resolve()
     input_labels_path: Path = Path(sys.argv[2]).resolve()
     output_dir: Path = Path(sys.argv[3]).resolve()
+    
+    assert imgs_folder_path.is_dir(), f"Images directory does not exist: {imgs_folder_path}"
+    assert input_labels_path.is_file(), f"Labels JSON file does not exist: {input_labels_path}"
+    assert output_dir.is_dir() or not output_dir.exists(), f"Output directory does not exist: {output_dir}"
 
     os.mkdir(output_dir)
 
+    # Begin reading LS annotations.
     with open(input_labels_path, 'r') as data_file:
         data = json.load(data_file)
         
@@ -45,9 +50,9 @@ def main():
                     # COCO expects masks to be in the format (b, g, r, a).
                     mask = np.reshape(mask, (height, width, 4))
 
-                    # Convert to cv2 friendly format and normalize.
+                    # Convert to cv2 friendly format and normalize, dropping alpha channel.
                     mask = mask[:, :, 3]
-                    mask[mask > 0] = 255
+                    mask[mask > 0] = 255    # move all non-white pizels to black.
 
                     # Export mask to numpy format and name accordingly.
                     mask_name = img_name.split('.')[0] + f'-{i}.npy'
