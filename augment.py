@@ -48,14 +48,15 @@ def main():
             mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
             masks.append(mask)
 
-        # Apply augmentations many times for each set of images and masks, scaling
-        # the dataset by a constant factor.
+        # Apply augmentations many times for each set of images 
+        # and masks, scaling the dataset by a constant factor.
         for i in range(scale_factor):
             results = transform(image=img, masks=masks)
             transformed_img: np.ndarray = results['image']
             transformed_masks: list[np.ndarray] = results['masks']
             img_path: Path = output_images_dir / f'{img_counter}-i.jpg'
             
+            # Save the transformed masks.
             for transformed_mask in transformed_masks:
                 mask_path: Path = output_masks_dir / f'{img_counter}-i-{transformed_masks.index(transformed_mask)}.npy'
                 cv.imwrite(str(img_path), transformed_img)
