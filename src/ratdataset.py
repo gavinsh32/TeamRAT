@@ -1,3 +1,6 @@
+# ratdataset.py
+# Interface to the RAT dataset, which contains image / mask pairs.
+
 import cv2 as cv
 import numpy as np
 from pathlib import Path
