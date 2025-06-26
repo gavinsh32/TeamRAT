@@ -56,7 +56,7 @@ def main():
                     # Convert to cv2 friendly format and normalize, dropping alpha channel.
                     label = label[:, :, 3]
                     label[label > 0] = 255    # move all non-white pizels to black.
-                    mask += label
+                    mask |= label
 
                 # Export mask to numpy format and name accordingly.
                 mask_name = img_name.split('.')[0] + '.npy'
