@@ -26,14 +26,3 @@ class RatDataset(Dataset):
         mask: np.ndarray = np.load(mask_path)
         
         return img, mask
-    
-imgs_dir = Path('dataset/imgs').resolve()
-masks_dir = Path('dataset/masks').resolve()
-
-dataset = RatDataset(imgs_dir, masks_dir)
-
-for i, (img, mask) in enumerate(dataset):
-    combined = 
-    cv.waitKey(0)
-
-cv.destroyAllWindows()

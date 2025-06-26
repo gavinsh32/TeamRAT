@@ -25,7 +25,12 @@ def main():
         output: np.ndarray = cv.addWeighted(img, 1.0, mask, 0.3, 0)
         
         cv.imshow('View Training Data', output)
-        cv.waitKey(0)
+        
+        if cv.waitKey(0) & 0xFF == 27:
+            break
+
+    cv.destroyAllWindows()
+
 
 if __name__ == "__main__":
     main()
