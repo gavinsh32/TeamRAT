@@ -1,7 +1,3 @@
-Here's the updated README with the usage commands for `view.py` and `convert.py`:
-
------
-
 # Project RAT
 
 **Reconstruction & Analysis of Tendons**
